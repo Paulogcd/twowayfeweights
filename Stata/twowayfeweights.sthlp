@@ -106,7 +106,7 @@ not the correlations between each variable and the contamination weights attache
 {p 4 8}
 {cmd:controls} is a list of control variables that are included in the regression.
 Controls should not vary within each group*period cell,
-because the results in in de Chaisemartin & D'Haultfoeuille (2020a)
+because the results in de Chaisemartin & D'Haultfoeuille (2020a)
 apply to two-way fixed effects regressions with group*period level controls.
 If a control does vary within a group*period cell,
 the command will replace it by its average value within each group*period cell.
