@@ -18,31 +18,94 @@ get_random_weight_rename <- function(ws) unlist(lapply(ws, fn_random_weight_rena
 ##
 # twowayfeweights_rename_var
 twowayfeweights_rename_var <- function(df, Y, G, T, D, D0, controls, treatments, random_weights) {
+
+  random_weight_df <- NULL
+  D0_df <- NULL
+  controls_df <- NULL
+  treatments_df <- NULL
+
+  # Generate a random character value that is not contained in the column names
+  # of the dataframe to act as the identification column of the dataset:
+  id.col = paste(sample(LETTERS, 10, TRUE), collapse = '')
+  while(id.col %in% colnames(df)){
+    id.col = paste(sample(LETTERS, 10, TRUE), collapse = '')
+  }
+  df <- df %>%
+    dplyr::mutate(!!id.col := 1:nrow(df))
+
+  # Y, G, T, D
+  original_names = c(Y, G, T, D)
+  df.base <- df %>%
+    dplyr::select(dplyr::all_of(c(!!id.col, original_names)))
   
-  controls_rename <- get_controls_rename(controls)
+  names(original_names) = c("Y", "G", "T", "D")
+  
+  df.base <- df.base %>%
+    dplyr::rename(original_names)
+  
+  controls_rename   <- get_controls_rename(controls)
   treatments_rename <- get_treatments_rename(treatments)
+
+  if(!is.null(controls)){
+    controls_df = df %>% dplyr::select(dplyr::all_of(c(controls, !!id.col)))
+    
+    old.names.controls         = c(controls, id.col)
+    names(old.names.controls)  = c(controls_rename, id.col)
+    controls_df <- controls_df %>% dplyr::rename(old.names.controls)
+
+  }
   
+  if(!is.null(treatments)){
+    treatments_df = df %>% dplyr::select(dplyr::all_of(c(treatments, !!id.col)))
+    
+    old.names.treatments         = c(treatments, id.col)
+    names(old.names.treatments)  = c(treatments_rename, id.col)
+    treatments_df <- treatments_df %>% dplyr::rename(old.names.controls)
+
+  }
+
   if (length(random_weights) > 0) {
     random_weight_rename <- get_random_weight_rename(random_weights)
-    random_weight_df <- df[, random_weights, drop = FALSE]
-    # random_weight_df <- df %>% dplyr::select(all_off(random_weights))
-    colnames(random_weight_df) <- random_weight_rename
+    # random_weight_df <- df[, random_weights, drop = FALSE]
+    random_weight_df <- df %>% dplyr::select(dplyr::all_of(c(random_weights, !!id.col)))
+    
+    old.names.weights         = c(random_weights, id.col)
+    names(old.names.weights)  = c(random_weight_rename, id.col)
+    random_weight_df <- random_weight_df %>% dplyr::rename(old.names.weights)
   }
-  
-  original_names = c(Y, G, T, D, controls, treatments)
-  new_names = c("Y", "G", "T", "D", controls_rename, treatments_rename)
   
   if (!is.null(D0)) {
-    original_names = c(original_names, D0)
-    new_names = c(new_names, "D0")
+    D0_df = df %>% dplyr::select(dplyr::all_of(c(D0, !!id.col)))
+    
+    old.names         = c(D0, id.col)
+    names(old.names)  = c("D0", id.col)
+    D0_df <- D0_df %>% dplyr::rename(old.names)
   }
   
-  df <- data.frame(df) %>% dplyr::select_at(dplyr::vars(original_names))
-  colnames(df) <- new_names
+  # This formulation does not select a column twice if there is a duplicate in the original_names vector.
+  # df <- data.frame(df) %>% dplyr::select_at(dplyr::vars(original_names))
   
-  if (length(random_weights) > 0) {
-    df <- cbind(df, random_weight_df)
+  df <- df.base
+
+  # For each non null variable, we add the corresponding column:
+  if(!is.null(D0_df)){
+    df <- df %>%
+      dplyr::left_join(D0_df, by = dplyr::join_by(!!id.col))
   }
+  if(!is.null(random_weight_df)){
+    df <- df %>%
+      dplyr::left_join(random_weight_df, by = dplyr::join_by(!!id.col))
+  }
+  if(!is.null(treatments_df)){
+    df <- df %>%
+      dplyr::left_join(treatments_df, by = dplyr::join_by(!!id.col))
+  }
+  if(!is.null(controls_df)){
+    df <- df %>%
+      dplyr::left_join(controls_df, by = dplyr::join_by(!!id.col))
+  }
+
+  df <- df %>% dplyr::select(-c(!!id.col))
   
   return(df)
 }

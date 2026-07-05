@@ -186,7 +186,16 @@ twowayfeweights = function(
   treatments_rename = get_treatments_rename(other_treatments)
   random_weight_rename = get_random_weight_rename(test_random_weights)
   
-  data_renamed = twowayfeweights_rename_var(data, Y, G, T, D, D0, controls, other_treatments, test_random_weights)
+  data_renamed = twowayfeweights_rename_var(
+    df              = data,
+    Y               = Y,
+    G               = G,
+    T               = T,
+    D               = D,
+    D0              = D0,
+    controls        = controls,
+    treatments      = other_treatments,
+    random_weights  = test_random_weights)
   data_transformed = twowayfeweights_transform(data_renamed, controls_rename, weights, treatments_rename)
   data_filtered = twowayfeweights_filter(data_transformed, Y, G, T, D, D0, type, controls_rename, treatments_rename)
 
